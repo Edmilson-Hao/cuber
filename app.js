@@ -30,11 +30,21 @@ const listaCasos = [
     { id: "pll_g4", tipo: "PLL", nome: "Caso G4", algoritmo: "R U R' y' R2 Uw' R U' R' U R' Uw R2", imagem: "imagens/pll-caso-g4-01.png" }
 ];
 
-// Estados Globais
+// Estados Globais Inteligentes
 let modoAtual = 'estudar';
 let casoAtual = null;
-let identificadoresEstudados = JSON.parse(localStorage.getItem('cubo_estudados')) || [];
-let listaTempos = JSON.parse(localStorage.getItem('cubo_ranking_tempos')) || [];
+let scrambleAtual = "Sem scramble";
+
+// Migração e carregamento do progresso com sistema de erros embutido
+let progressoCasos = JSON.parse(localStorage.getItem('cubo_progresso_v2')) || {};
+let listaTempos = JSON.parse(localStorage.getItem('cubo_ranking_tempos_v2')) || [];
+
+// Se houver dados da versão antiga de array simples, migra automaticamente
+if (localStorage.getItem('cubo_estudados') && Object.keys(progressoCasos).length === 0) {
+    const antigos = JSON.parse(localStorage.getItem('cubo_estudados'));
+    antigos.forEach(id => { progressoCasos[id] = { estudado: true, erros: 0 }; });
+    localStorage.setItem('cubo_progresso_v2', JSON.stringify(progressoCasos));
+}
 
 // Elementos DOM
 const elCasoCard = document.getElementById('caso-card');
@@ -82,8 +92,12 @@ function alternarTema() {
     document.getElementById('btn-theme').innerText = isDark ? "☀️ Light Mode" : "🌙 Dark Mode";
 }
 
+function obterIdsEstudados() {
+    return Object.keys(progressoCasos).filter(id => progressoCasos[id].estudado);
+}
+
 function atualizarStats() {
-    elQtdEstudados.innerText = identificadoresEstudados.length;
+    elQtdEstudados.innerText = obterIdsEstudados().length;
     elQtdTotal.innerText = listaCasos.length;
 }
 
@@ -123,7 +137,8 @@ function mudarModo(modo) {
 
 function renderizarProximo() {
     if (modoAtual === 'estudar') {
-        const disponiveis = listaCasos.filter(c => !identificadoresEstudados.includes(c.id));
+        const estudados = obterIdsEstudados();
+        const disponiveis = listaCasos.filter(c => !estudados.includes(c.id));
         if (disponiveis.length > 0) {
             casoAtual = disponiveis[0];
             exibirCaso(casoAtual);
@@ -131,15 +146,34 @@ function renderizarProximo() {
             exibirAvisoVazio("Todos os casos foram estudados! Vá para o modo Revisar.");
         }
     } else if (modoAtual === 'revisar') {
-        const disponiveis = listaCasos.filter(c => identificadoresEstudados.includes(c.id));
+        const estudados = obterIdsEstudados();
+        const disponiveis = listaCasos.filter(c => estudados.includes(c.id));
+        
         if (disponiveis.length > 0) {
-            const indiceAleatorio = Math.floor(Math.random() * disponiveis.length);
-            casoAtual = disponiveis[indiceAleatorio];
+            casoAtual = selecionarCasoPorPrioridadeDeErros(disponiveis);
             exibirCaso(casoAtual);
         } else {
             exibirAvisoVazio("Nenhum caso estudado ainda. Use a aba Estudar ou Gerenciar.");
         }
     }
+}
+
+// ALGORITMO DE PRIORIDADE BASEADO NOS SEUS ERROS
+function selecionarCasoPorPrioridadeDeErros(casosDisponiveis) {
+    let poolSelecao = [];
+    
+    casosDisponiveis.forEach(caso => {
+        const dados = progressoCasos[caso.id] || { erros: 0 };
+        // Peso padrão é 1. Cada erro adiciona +3 de peso (chances) no sorteio
+        const peso = 1 + (dados.erros * 3);
+        
+        for (let i = 0; i < peso; i++) {
+            poolSelecao.push(caso);
+        }
+    });
+
+    const indiceSorteado = Math.floor(Math.random() * poolSelecao.length);
+    return poolSelecao[indiceSorteado];
 }
 
 function exibirCaso(caso) {
@@ -158,14 +192,26 @@ function exibirAvisoVazio(mensagem) {
 }
 
 function concluirEstudo() {
-    if (casoAtual && !identificadoresEstudados.includes(casoAtual.id)) {
-        identificadoresEstudados.push(casoAtual.id);
+    if (casoAtual) {
+        if (!progressoCasos[casoAtual.id]) {
+            progressoCasos[casoAtual.id] = { estudado: true, erros: 0 };
+        } else {
+            progressoCasos[casoAtual.id].estudado = true;
+        }
         salvarProgresso();
         renderizarProximo();
     }
 }
 
 function proximaRevisao(acertou) {
+    if (casoAtual && !acertou) {
+        if (!progressoCasos[casoAtual.id]) {
+            progressoCasos[casoAtual.id] = { estudado: true, erros: 1 };
+        } else {
+            progressoCasos[casoAtual.id].erros = (progressoCasos[casoAtual.id].erros || 0) + 1;
+        }
+        salvarProgresso();
+    }
     renderizarProximo();
 }
 
@@ -185,10 +231,11 @@ function gerarScrambleWCA() {
 }
 
 function atualizarScramble() {
-    elScrambleTexto.innerText = gerarScrambleWCA();
+    scrambleAtual = gerarScrambleWCA();
+    elScrambleTexto.innerText = scrambleAtual;
 }
 
-// CRONÔMETRO REESTRUTURADO (Área de Toque Ampla)
+// CRONÔMETRO
 function configurarEventosTimer() {
     window.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && modoAtual === 'timer') {
@@ -204,7 +251,6 @@ function configurarEventosTimer() {
         }
     });
 
-    // Eventos mapeados para toda a div cinza de toque
     elAreaToque.addEventListener('mousedown', dispararAperto);
     elAreaToque.addEventListener('mouseup', dispararSoltura);
     elAreaToque.addEventListener('touchstart', (e) => { e.preventDefault(); dispararAperto(); });
@@ -264,18 +310,24 @@ function resetarTimerVisual() {
     elTimerTop.innerText = "0.00";
 }
 
-// LOGICA DE SESSÕES E TEMPOS (RANKING TOP 10)
+// SALVA O TEMPO, A DATA ATUAL E O SCRAMBLE DE FORMA ESTRUTURADA
 function salvarNovoTempo(novoTempo) {
-    listaTempos.push(novoTempo);
-    // Ordena do menor tempo para o maior
-    listaTempos.sort((a, b) => a - b);
-    localStorage.setItem('cubo_ranking_tempos', JSON.stringify(listaTempos));
+    const agora = new Date();
+    const dataFormatada = `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')} ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+    
+    const objetoTempo = {
+        tempo: novoTempo,
+        data: dataFormatada,
+        scramble: scrambleAtual
+    };
+
+    listaTempos.push(objetoTempo);
+    listaTempos.sort((a, b) => a.tempo - b.tempo);
+    localStorage.setItem('cubo_ranking_tempos_v2', JSON.stringify(listaTempos));
 }
 
 function renderizarRankingTempos() {
     elListaTemposOl.innerHTML = "";
-    
-    // Filtra e pega apenas os 10 melhores tempos salvos
     const top10 = listaTempos.slice(0, 10);
 
     if (top10.length === 0) {
@@ -283,26 +335,42 @@ function renderizarRankingTempos() {
         return;
     }
 
-    top10.forEach((tempo, index) => {
+    top10.forEach((item, index) => {
         const li = document.createElement('li');
+        li.className = "ranking-item-container";
         li.innerHTML = `
-            <span>${index + 1}. &nbsp;&nbsp; <strong>${tempo.toFixed(2)}s</strong></span>
-            <button class="btn-delete-tempo" onclick="deletarTempoPorIndice(${index})">&times;</button>
+            <div class="ranking-linha-principal" onclick="alternarDetalhesTempo(${index})">
+                <span>${index + 1}. &nbsp;&nbsp; <strong>${item.tempo.toFixed(2)}s</strong></span>
+                <div style="display:flex; align-items:center; gap: 15px;">
+                    <span class="ranking-data-resumida">${item.data}</span>
+                    <button class="btn-delete-tempo" onclick="event.stopPropagation(); deletarTempoPorIndice(${index})">&times;</button>
+                </div>
+            </div>
+            <div id="detalhes-tempo-${index}" class="ranking-detalhes hidden">
+                <p><strong>Scramble:</strong> ${item.scramble || 'Não registrado'}</p>
+            </div>
         `;
         elListaTemposOl.appendChild(li);
     });
+}
+
+function alternarDetalhesTempo(index) {
+    const painel = document.getElementById(`detalhes-tempo-${index}`);
+    if (painel) {
+        painel.classList.toggle('hidden');
+    }
 }
 
 function deletarTempoPorIndice(index) {
     const confirmar = confirm("Tem certeza que deseja deletar este tempo?");
     if (confirmar) {
         listaTempos.splice(index, 1);
-        localStorage.setItem('cubo_ranking_tempos', JSON.stringify(listaTempos));
+        localStorage.setItem('cubo_ranking_tempos_v2', JSON.stringify(listaTempos));
         renderizarRankingTempos();
     }
 }
 
-// GERENCIAMENTO MANUAL DE CASOS
+// GERENCIAMENTO MANUAL
 function gerarListasGerenciamento() {
     const containerOll = document.getElementById('lista-gerenciar-oll');
     const containerPll = document.getElementById('lista-gerenciar-pll');
@@ -328,21 +396,29 @@ function gerarListasGerenciamento() {
 function atualizarCheckboxesGerenciar() {
     listaCasos.forEach(caso => {
         const checkbox = document.getElementById(`chk-${caso.id}`);
-        if (checkbox) checkbox.checked = identificadoresEstudados.includes(caso.id);
+        if (checkbox) {
+            checkbox.checked = progressoCasos[caso.id] ? progressoCasos[caso.id].estudado : false;
+        }
     });
 }
 
+function toggleErrosInfoGerenciar() { /* Opcional: Adicionar exibição visual de erros na lista se desejar */ }
+
+function determinarErrosPorId(id) {
+    return progressoCasos[id] ? (progressoCasos[id].erros || 0) : 0;
+}
+
 function alternarStatusCasoManual(id, marcarComoEstudado) {
-    if (marcarComoEstudado) {
-        if (!identificadoresEstudados.includes(id)) identificadoresEstudados.push(id);
+    if (!progressoCasos[id]) {
+        progressoCasos[id] = { estudado: marcarComoEstudado, erros: 0 };
     } else {
-        identificadoresEstudados = identificadoresEstudados.filter(item => item !== id);
+        progressoCasos[id].estudado = marcarComoEstudado;
     }
     salvarProgresso();
 }
 
 function salvarProgresso() {
-    localStorage.setItem('cubo_estudados', JSON.stringify(identificadoresEstudados));
+    localStorage.setItem('cubo_progresso_v2', JSON.stringify(progressoCasos));
     atualizarStats();
 }
 
