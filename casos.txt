@@ -1,0 +1,77 @@
+oll
+Caso 01
+R U R' U R U2 R'
+Caso 02
+R' U' R U' R' U2 R
+Caso 03
+R U R' U R U' R' U R U2 R'
+Caso 04
+R U2 R2 U' R2 U' R2 U2 R
+Caso 05
+Rw U R’ U’ Rw’ F R F’
+Caso 06
+F' Rw U R' U' Rw' F R
+Caso 07
+R2 D' R U2 R' D R U2 R
+
+
+pll
+Caso U horário
+R' U R' U' R' U' R' U R U R2
+Caso U anti-horário
+R2 U' R' U' R U R U R U' R
+Caso A horário
+x R' U R' D2
+R U' R' D2 R2 x'
+Caso A anti-horário
+x R2' D2 R U R'
+D2 R U' R x'
+Caso H
+M2 U M2 U2 M2 U M2
+Caso Z
+M2 U M2 U M' U2 M2 U2 M'
+Caso T
+R U R' U' R' F
+R2 U' R' U' R U R' F'
+Caso F
+R' U' F' R U R' U' R' F
+R2 U' R' U' R U R' U R
+Caso Y
+F R U' R' U' R U R' F'
+R U R' U' R' F R F'
+Caso E
+x' R U' R' D R U R' D'
+R U R' D R U' R' D' x
+Caso V
+R' U R' Dw' R' F'
+R2 U' R' U R' F R F
+Caso R1
+R U' R' U' R U R D R'
+U' R D' R' U2 R' U'
+Caso R2
+R' U2 R U2' R' F
+R U R' U' R' F' R2 U'
+Caso J1
+x R2 F R F' R U2
+Rw' U Rw U2 x'
+Caso J2
+R U R' F' R U R'
+U' R' F R2 U' R' U'
+Caso N1
+R U R' U R U R' F' R U R'
+U' R' F R2 U' R' U2 R U' R'
+Caso N2
+R' U R U' R' F' U' F
+R U R' F R' F' R U' R
+Caso G1
+R2' Uw R' U R' U' R Uw'
+R2 y' R' U R
+Caso G2
+R' U' R U D' R2 U R' U R
+U' R U' R2 D U'
+Caso G3
+R2 U' R U' R U R'
+U R2 D' U R U' R' D U'
+Caso G4
+R U R' y' R2 Uw'
+R U' R' U R' Uw R2

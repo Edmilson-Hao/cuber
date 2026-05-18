@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treinador de Cubo Mágico - OLL & PLL</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="toolbar">
+            <span class="timer-preview" id="timer-display-top">0.00</span>
+            <button id="btn-theme" class="btn-toggle" onclick="alternarTema()">🌙 Dark Mode</button>
+        </div>
+
+        <header>
+            <h1>Algoritmos Cubo Mágico</h1>
+            <div class="tabs">
+                <button id="btn-estudar" class="tab-btn active" onclick="mudarModo('estudar')">Estudar</button>
+                <button id="btn-revisar" class="tab-btn" onclick="mudarModo('revisar')">Revisar</button>
+                <button id="btn-timer" class="tab-btn" onclick="mudarModo('timer')">Timer</button>
+                <button id="btn-gerenciar" class="tab-btn" onclick="mudarModo('gerenciar')">Gerenciar</button>
+            </div>
+            <div class="stats">
+                Estudados: <span id="qtd-estudados">0</span> / Total: <span id="qtd-total">0</span>
+            </div>
+        </header>
+
+        <main id="card-container">
+            <div id="caso-card" class="card">
+                <span id="caso-tipo" class="badge">OLL</span>
+                <h2 id="caso-nome">Caso 01</h2>
+                
+                <div class="image-container">
+                    <img id="caso-imagem" src="" alt="Diagrama do caso">
+                </div>
+                
+                <div class="algoritmo-box">
+                    <p id="caso-algoritmo">Carregando...</p>
+                </div>
+
+                <div id="controles-estudar" class="control-group">
+                    <button class="btn btn-success" onclick="concluirEstudo()">Concluir Caso</button>
+                </div>
+
+                <div id="controles-revisar" class="control-group hidden">
+                    <button class="btn btn-danger" onclick="proximaRevisao(false)">Errei</button>
+                    <button class="btn btn-success" onclick="proximaRevisao(true)">Acertei</button>
+                </div>
+            </div>
+            
+            <div id="mensagem-vazia" class="card hidden">
+                <p id="texto-vazio">Nenhum caso disponível para este modo.</p>
+            </div>
+
+            <div id="modo-timer" class="card hidden">
+                <div class="scramble-box">
+                    <div class="scramble-title">Scramble Oficial WCA (3x3x3)</div>
+                    <div id="scramble-texto" class="scramble-text">Gerando...</div>
+                </div>
+                
+                <div class="timer-section-full">
+                    <div id="cronometro" class="timer-main">0.00</div>
+                    <p class="timer-hint">Segure ESPAÇO ou clique/segure no número para preparar</p>
+                </div>
+                <button class="btn btn-secondary" onclick="atualizarScramble()">Pular Scramble</button>
+            </div>
+
+            <div id="modo-gerenciar" class="card hidden">
+                <h2>Progresso dos Casos</h2>
+                <p class="instrucao-gerenciar">Marque os casos que você já sabe para enviá-los à Revisão:</p>
+                
+                <div class="secao-gerenciar">
+                    <h3>OLL</h3>
+                    <div id="lista-gerenciar-oll" class="grid-gerenciar"></div>
+                </div>
+                
+                <div class="secao-gerenciar">
+                    <h3>PLL</h3>
+                    <div id="lista-gerenciar-pll" class="grid-gerenciar"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
