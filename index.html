@@ -2,8 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Treinador de Cubo Mágico - OLL & PLL</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-hidden">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,6 +22,7 @@
                 <button id="btn-estudar" class="tab-btn active" onclick="mudarModo('estudar')">Estudar</button>
                 <button id="btn-revisar" class="tab-btn" onclick="mudarModo('revisar')">Revisar</button>
                 <button id="btn-timer" class="tab-btn" onclick="mudarModo('timer')">Timer</button>
+                <button id="btn-tempos" class="tab-btn" onclick="mudarModo('tempos')">Tempos</button>
                 <button id="btn-gerenciar" class="tab-btn" onclick="mudarModo('gerenciar')">Gerenciar</button>
             </div>
             <div class="stats">
@@ -53,17 +57,23 @@
                 <p id="texto-vazio">Nenhum caso disponível para este modo.</p>
             </div>
 
-            <div id="modo-timer" class="card hidden">
+            <div id="modo-timer" class="card card-timer-mode hidden">
                 <div class="scramble-box">
                     <div class="scramble-title">Scramble Oficial WCA (3x3x3)</div>
                     <div id="scramble-texto" class="scramble-text">Gerando...</div>
                 </div>
                 
-                <div class="timer-section-full">
+                <div id="area-toque-timer" class="timer-section-full">
                     <div id="cronometro" class="timer-main">0.00</div>
-                    <p class="timer-hint">Segure ESPAÇO ou clique/segure no número para preparar</p>
+                    <p class="timer-hint">Segure ESPAÇO ou Toque/Segure nesta área para preparar</p>
                 </div>
                 <button class="btn btn-secondary" onclick="atualizarScramble()">Pular Scramble</button>
+            </div>
+
+            <div id="modo-tempos" class="card hidden">
+                <h2>🏆 Top 10 Melhores Tempos</h2>
+                <p class="instrucao-gerenciar">Suas melhores resoluções ordenadas por tempo:</p>
+                <ol id="lista-melhores-tempos" class="ranking-lista"></ol>
             </div>
 
             <div id="modo-gerenciar" class="card hidden">
@@ -83,6 +93,13 @@
         </main>
     </div>
 
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log("Service Worker registrado com sucesso!"))
+                .catch(err => console.log("Erro ao registrar Service Worker:", err));
+        }
+    </script>
     <script src="app.js"></script>
 </body>
 </html>

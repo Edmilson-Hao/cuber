@@ -1,6 +1,5 @@
-// Banco de dados
+// Banco de dados completo
 const listaCasos = [
-    // OLLs
     { id: "oll_01", tipo: "OLL", nome: "Caso 01", algoritmo: "R U R' U R U2 R'", imagem: "imagens/oll-caso-01.png" },
     { id: "oll_02", tipo: "OLL", nome: "Caso 02", algoritmo: "R' U' R U' R' U2 R", imagem: "imagens/oll-caso-02.png" },
     { id: "oll_03", tipo: "OLL", nome: "Caso 03", algoritmo: "R U R' U R U' R' U R U2 R'", imagem: "imagens/oll-caso-03.png" },
@@ -8,8 +7,6 @@ const listaCasos = [
     { id: "oll_05", tipo: "OLL", nome: "Caso 05", algoritmo: "Rw U R’ U’ Rw’ F R F’", imagem: "imagens/oll-caso-05.png" },
     { id: "oll_06", tipo: "OLL", nome: "Caso 06", algoritmo: "F' Rw U R' U' Rw' F R", imagem: "imagens/oll-caso-06.png" },
     { id: "oll_07", tipo: "OLL", nome: "Caso 07", algoritmo: "R2 D' R U2 R' D R U2 R", imagem: "imagens/oll-caso-07.png" },
-    
-    // PLLs
     { id: "pll_u_h", tipo: "PLL", nome: "Caso U horário", algoritmo: "R' U R' U' R' U' R' U R U R2", imagem: "imagens/pll-caso-u-h-01.png" },
     { id: "pll_u_a", tipo: "PLL", nome: "Caso U anti-horário", algoritmo: "R2 U' R' U' R U R U R U' R", imagem: "imagens/pll-caso-u-a-01.png" },
     { id: "pll_a_h", tipo: "PLL", nome: "Caso A horário", algoritmo: "x R' U R' D2 R U' R' D2 R2 x'", imagem: "imagens/pll-caso-a-h-01.png" },
@@ -37,14 +34,17 @@ const listaCasos = [
 let modoAtual = 'estudar';
 let casoAtual = null;
 let identificadoresEstudados = JSON.parse(localStorage.getItem('cubo_estudados')) || [];
+let listaTempos = JSON.parse(localStorage.getItem('cubo_ranking_tempos')) || [];
 
-// Elementos DOM gerais
+// Elementos DOM
 const elCasoCard = document.getElementById('caso-card');
 const elMensagemVazia = document.getElementById('mensagem-vazia');
 const elTextoVazio = document.getElementById('texto-vazio');
 const elModoGerenciar = document.getElementById('modo-gerenciar');
 const elModoTimer = document.getElementById('modo-timer');
+const elModoTempos = document.getElementById('modo-tempos');
 const elScrambleTexto = document.getElementById('scramble-texto');
+const elListaTemposOl = document.getElementById('lista-melhores-tempos');
 
 const elTipo = document.getElementById('caso-tipo');
 const elNome = document.getElementById('caso-nome');
@@ -55,11 +55,13 @@ const elControlesRevisar = document.getElementById('controles-revisar');
 const elQtdEstudados = document.getElementById('qtd-estudados');
 const elQtdTotal = document.getElementById('qtd-total');
 
-// Variáveis do Cronômetro
+// Cronômetro
+const elAreaToque = document.getElementById('area-toque-timer');
 const elCronometro = document.getElementById('cronometro');
 const elTimerTop = document.getElementById('timer-display-top');
-let timerEstado = "parado"; // parado, inspecionando, pronto, rodando
+let timerEstado = "parado";
 let tempoInicial = 0;
+let tempoFinalCalculado = 0;
 let intervaloTimer = null;
 let segurandoTimeout = null;
 
@@ -68,7 +70,6 @@ function inicializar() {
         document.body.classList.add('dark');
         document.getElementById('btn-theme').innerText = "☀️ Light Mode";
     }
-
     atualizarStats();
     gerarListasGerenciamento();
     renderizarProximo();
@@ -91,12 +92,14 @@ function mudarModo(modo) {
     document.getElementById('btn-estudar').classList.toggle('active', modo === 'estudar');
     document.getElementById('btn-revisar').classList.toggle('active', modo === 'revisar');
     document.getElementById('btn-timer').classList.toggle('active', modo === 'timer');
+    document.getElementById('btn-tempos').classList.toggle('active', modo === 'tempos');
     document.getElementById('btn-gerenciar').classList.toggle('active', modo === 'gerenciar');
     
     elCasoCard.classList.add('hidden');
     elMensagemVazia.classList.add('hidden');
     elModoGerenciar.classList.add('hidden');
     elModoTimer.classList.add('hidden');
+    elModoTempos.classList.add('hidden');
     elControlesEstudar.classList.add('hidden');
     elControlesRevisar.classList.add('hidden');
 
@@ -109,6 +112,9 @@ function mudarModo(modo) {
     } else if (modo === 'timer') {
         elModoTimer.classList.remove('hidden');
         atualizarScramble();
+    } else if (modo === 'tempos') {
+        elModoTempos.classList.remove('hidden');
+        renderizarRankingTempos();
     } else if (modo === 'gerenciar') {
         elModoGerenciar.classList.remove('hidden');
         atualizarCheckboxesGerenciar();
@@ -163,32 +169,18 @@ function proximaRevisao(acertou) {
     renderizarProximo();
 }
 
-// LOGICA DE GERADOR DE SCRAMBLE REGRAS WCA
+// GERADOR WCA SCRAMBLE
 function gerarScrambleWCA() {
     const movimentos = ["U", "D", "R", "L", "F", "B"];
     const modificadores = ["", "'", "2"];
     let scramble = [];
     let ultimoEixo = -1;
-
-    // Regra WCA: Geralmente entre 20 e 22 movimentos para o 3x3x3
-    const tamanhoScramble = 21; 
-
-    for (let i = 0; i < tamanhoScramble; i++) {
-        let movimentoEscolhido;
+    for (let i = 0; i < 21; i++) {
         let eixoEscolhido;
-
-        // Evita repetir a mesma camada seguidamente (Ex: R R' ou U U2)
-        do {
-            eixoEscolhido = Math.floor(Math.random() * movimentos.length);
-        } while (eixoEscolhido === ultimoEixo);
-
-        movimentoEscolhido = movimentos[eixoEscolhido];
-        const modificadorEscolhido = modificadores[Math.floor(Math.random() * modificadores.length)];
-        
-        scramble.push(movimentoEscolhido + modificadorEscolhido);
+        do { eixoEscolhido = Math.floor(Math.random() * movimentos.length); } while (eixoEscolhido === ultimoEixo);
+        scramble.push(movimentos[eixoEscolhido] + modificadores[Math.floor(Math.random() * modificadores.length)]);
         ultimoEixo = eixoEscolhido;
     }
-
     return scramble.join(" ");
 }
 
@@ -196,7 +188,7 @@ function atualizarScramble() {
     elScrambleTexto.innerText = gerarScrambleWCA();
 }
 
-// CONTROLES MECÂNICOS DO CRONÔMETRO
+// CRONÔMETRO REESTRUTURADO (Área de Toque Ampla)
 function configurarEventosTimer() {
     window.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && modoAtual === 'timer') {
@@ -212,32 +204,31 @@ function configurarEventosTimer() {
         }
     });
 
-    // Eventos Mouse/Touch para Dispositivos Móveis
-    elCronometro.addEventListener('mousedown', dispararAperto);
-    elCronometro.addEventListener('mouseup', dispararSoltura);
-    elCronometro.addEventListener('touchstart', (e) => { e.preventDefault(); dispararAperto(); });
-    elCronometro.addEventListener('touchend', (e) => { e.preventDefault(); dispararSoltura(); });
+    // Eventos mapeados para toda a div cinza de toque
+    elAreaToque.addEventListener('mousedown', dispararAperto);
+    elAreaToque.addEventListener('mouseup', dispararSoltura);
+    elAreaToque.addEventListener('touchstart', (e) => { e.preventDefault(); dispararAperto(); });
+    elAreaToque.addEventListener('touchend', (e) => { e.preventDefault(); dispararSoltura(); });
 }
 
 function dispararAperto() {
     if (timerEstado === "rodando") {
         pararTimer();
-        atualizarScramble(); // Gera o scramble para a próxima tentativa imediatamente ao parar
+        salvarNovoTempo(tempoFinalCalculado);
+        atualizarScramble();
     } else if (timerEstado === "parado") {
         timerEstado = "inspecionando";
         elCronometro.className = "timer-main preparando";
-        
         segurandoTimeout = setTimeout(() => {
             timerEstado = "pronto";
             elCronometro.className = "timer-main pronto";
             elCronometro.innerText = "0.00";
-        }, 500); // 500ms segurando para acender a luz verde
+        }, 500);
     }
 }
 
 function dispararSoltura() {
     clearTimeout(segurandoTimeout);
-
     if (timerEstado === "pronto") {
         iniciarTimer();
     } else if (timerEstado === "inspecionando") {
@@ -252,8 +243,8 @@ function iniciarTimer() {
     tempoInicial = performance.now();
     
     intervaloTimer = setInterval(() => {
-        const tempoPassado = (performance.now() - tempoInicial) / 1000;
-        const stringTempo = tempoPassado.toFixed(2);
+        tempoFinalCalculado = (performance.now() - tempoInicial) / 1000;
+        const stringTempo = tempoFinalCalculado.toFixed(2);
         elCronometro.innerText = stringTempo;
         elTimerTop.innerText = stringTempo;
     }, 10);
@@ -273,18 +264,54 @@ function resetarTimerVisual() {
     elTimerTop.innerText = "0.00";
 }
 
-// GERENCIAMENTO MANUAL
+// LOGICA DE SESSÕES E TEMPOS (RANKING TOP 10)
+function salvarNovoTempo(novoTempo) {
+    listaTempos.push(novoTempo);
+    // Ordena do menor tempo para o maior
+    listaTempos.sort((a, b) => a - b);
+    localStorage.setItem('cubo_ranking_tempos', JSON.stringify(listaTempos));
+}
+
+function renderizarRankingTempos() {
+    elListaTemposOl.innerHTML = "";
+    
+    // Filtra e pega apenas os 10 melhores tempos salvos
+    const top10 = listaTempos.slice(0, 10);
+
+    if (top10.length === 0) {
+        elListaTemposOl.innerHTML = "<p style='font-size:0.95rem;color:#888;'>Nenhum tempo registrado.</p>";
+        return;
+    }
+
+    top10.forEach((tempo, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <span>${index + 1}. &nbsp;&nbsp; <strong>${tempo.toFixed(2)}s</strong></span>
+            <button class="btn-delete-tempo" onclick="deletarTempoPorIndice(${index})">&times;</button>
+        `;
+        elListaTemposOl.appendChild(li);
+    });
+}
+
+function deletarTempoPorIndice(index) {
+    const confirmar = confirm("Tem certeza que deseja deletar este tempo?");
+    if (confirmar) {
+        listaTempos.splice(index, 1);
+        localStorage.setItem('cubo_ranking_tempos', JSON.stringify(listaTempos));
+        renderizarRankingTempos();
+    }
+}
+
+// GERENCIAMENTO MANUAL DE CASOS
 function gerarListasGerenciamento() {
     const containerOll = document.getElementById('lista-gerenciar-oll');
     const containerPll = document.getElementById('lista-gerenciar-pll');
-    
     containerOll.innerHTML = '';
     containerPll.innerHTML = '';
 
     listaCasos.forEach(caso => {
         const label = document.createElement('label');
         label.className = 'item-gerenciar';
-        
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.id = `chk-${caso.id}`;
