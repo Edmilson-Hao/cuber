@@ -169,7 +169,7 @@ main {
 /* Área de toque gigante */
 .timer-section-full {
     width: 100%;
-    flex-grow: 1;
+    min-height: 60vh; /* Força a área cinza a ocupar no mínimo 60% da altura de toda a tela */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -179,7 +179,7 @@ main {
     margin: 10px 0;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: none; /* Bloqueia gestos nativos do navegador como arrastar para atualizar */
+    touch-action: none; /* Bloqueia gestos do navegador para não dar erro no toque */
 }
 
 .timer-main {
